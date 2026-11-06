@@ -1,4 +1,4 @@
-import { $, esc, r1, S, api, ACTIONS, hooks, toast, header, targets, saveProfile, saveSetting, sum, go, currentWeight, ring, fmt, MEALS, mealNow, greeting, foodDates, shiftDay } from "./lib.js";
+import { $, esc, r1, S, api, ACTIONS, hooks, toast, openSheet, closeSheet, header, targets, saveProfile, saveSetting, sum, go, currentWeight, ring, fmt, MEALS, mealNow, greeting, foodDates, shiftDay } from "./lib.js";
 import { weeklyCheck, estMaintenance, PHASES } from "./targets.js";
 import { planMeals } from "./plan.js";
 import { dayStreak } from "./stats.js";
@@ -82,7 +82,7 @@ function mealCards(t) {
     if (!rows.length) return "";
     const p = sum(rows, "protein"), ok = id !== "snack" && p >= per * 0.9;
     return `<div class="card"><div class="meal-h"><h2>${emoji} ${label}</h2><span class="dim"><b>${Math.round(sum(rows, "kcal"))}</b> cal · <b class="${ok ? "ok" : ""}">${Math.round(p)}</b>${id === "snack" ? "" : ` / ${per}`} g protein${ok ? " ✓" : ""}</span></div>
-      ${rows.map((r) => `<div class="row between item"><div><div>${esc(r.name)}${r.grams ? ` <span class="dim">${Math.round(r.grams)} g</span>` : ""}</div>
+      ${rows.map((r) => `<div class="row between item"><div data-act="editfood" data-id="${r.id}" role="button" tabindex="0" aria-label="Edit ${esc(r.name)}"><div>${esc(r.name)}${r.grams ? ` <span class="dim">${Math.round(r.grams)} g</span>` : ""}</div>
         <div class="dim">${Math.round(r.kcal)} cal · ${r1(r.protein)} protein · ${r1(r.carbs)} carbs · ${r1(r.fat)} fat</div></div>
         <span class="row nowrap"><button class="x" data-act="favToggle" data-id="${r.id}" aria-pressed="${isFav(r)}" aria-label="${isFav(r) ? "Remove from" : "Add to"} favorites: ${esc(r.name)}">${isFav(r) ? "⭐" : "☆"}</button><button class="x" data-act="fdel" data-id="${r.id}" aria-label="Delete ${esc(r.name)}">✕</button></span></div>`).join("")}</div>`;
   }).join("");
@@ -179,7 +179,30 @@ Object.assign(ACTIONS, {
     haptic(); toast("Added");
   },
   delMine: async (t) => { S.mymeals.splice(t.dataset.i, 1); await saveSetting("mymeals", S.mymeals); },
-  fdel: async (t) => { await api("/api/food/" + t.dataset.id, { method: "DELETE" }); await loadFood(); },
+  fdel: async (t) => {
+    const r = S.food.find((x) => String(x.id) === t.dataset.id);
+    await api("/api/food/" + t.dataset.id, { method: "DELETE" }); await loadFood();
+    if (r) toast("Removed", async () => { const { name, grams, kcal, protein, carbs, fat, fiber, meal, micro } = r; await api("/api/food", { method: "POST", body: { date: S.today, name, grams: grams ?? undefined, kcal, protein, carbs, fat, fiber: fiber ?? undefined, meal: meal ?? undefined, micro: micro ?? undefined } }); await loadFood(); });
+  },
+  editfood: (t) => {
+    const r = S.food.find((x) => String(x.id) === t.dataset.id);
+    if (!r) return false;
+    openSheet(`<h2>Edit food</h2>
+      <div class="field"><label for="ef-name">Name</label><input id="ef-name" maxlength="120" value="${esc(r.name)}"></div>
+      <div class="field"><label for="ef-amt">${r.grams ? "Amount (grams)" : "How many (1 = what you logged)"}</label><input id="ef-amt" type="number" inputmode="decimal" min="0.1" step="any" value="${r.grams ? Math.round(r.grams) : 1}"></div>
+      <div class="field"><label for="ef-meal">Meal</label><select id="ef-meal">${MEALS.map(([id, l]) => `<option value="${id}" ${(r.meal ?? "snack") === id ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+      <p class="dim">Calories, macros, fiber and vitamins scale with the amount.</p>
+      <button class="btn primary wide" data-act="savefood" data-id="${r.id}">Save</button>`);
+    return false;
+  },
+  savefood: async (t) => {
+    const r = S.food.find((x) => String(x.id) === t.dataset.id), amt = parseFloat($("#ef-amt").value), name = $("#ef-name").value.trim();
+    if (!name) throw new Error("Give it a name.");
+    if (!(amt > 0)) throw new Error("Type an amount above 0.");
+    const k = r.grams ? amt / r.grams : amt, p = (v) => r1(v * k);
+    await api("/api/food/" + r.id, { method: "PATCH", body: { name, grams: r.grams ? amt : undefined, kcal: Math.round(r.kcal * k), protein: p(r.protein), carbs: p(r.carbs), fat: p(r.fat), fiber: r.fiber != null ? p(r.fiber) : undefined, meal: $("#ef-meal").value, micro: r.micro ? scaleMicro(r.micro, k) : undefined } });
+    closeSheet(); await loadFood(); haptic(); toast("Updated ✓");
+  },
   logPlanned: async (t) => {
     const m = planMeals(S.plan, new Date().getDay())[t.dataset.i];
     S.mealSel = m.slot.toLowerCase();

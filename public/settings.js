@@ -4,7 +4,7 @@ import { TEMPLATES } from "./routine.js";
 import { loadBody } from "./progress.js";
 import { applyTheme, ui, ACCENTS, haptic } from "./fx.js";
 
-const VERSION = "3.3";
+const VERSION = "3.4";
 const csv = (rows, cols) => [cols.join(","), ...rows.map((r) => cols.map((c) => JSON.stringify(r[c] ?? "")).join(","))].join("\n");
 function download(name, text, type = "text/plain") {
   const a = document.createElement("a");

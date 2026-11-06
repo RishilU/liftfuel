@@ -19,6 +19,12 @@ const PHOTO = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/;
 const POSES = ["front", "side", "back"];
 const MEALS = ["breakfast", "lunch", "dinner", "snack"];
 const MEASURES = ["chest", "arm", "thigh", "hips", "neck", "bodyfat"];
+const setOk = (b) => num(b.weight, 2000) && Number.isInteger(b.reps) && b.reps >= 1 && b.reps <= 200 && (b.note == null || (typeof b.note === "string" && b.note.length <= 120));
+const foodOk = (b) => typeof b.name === "string" && b.name.trim() && b.name.length <= 120
+  && (b.grams == null || num(b.grams, 10000)) && num(b.kcal, 5000) && num(b.protein, 1000) && num(b.carbs, 1000) && num(b.fat, 1000)
+  && (b.fiber == null || num(b.fiber, 1000)) && (b.meal == null || MEALS.includes(b.meal))
+  && (b.micro == null || (typeof b.micro === "object" && Object.entries(b.micro).every(([k, v]) => MICRO_KEYS.includes(k) && num(v, 100000))));
+const microJson = (b) => (b.micro && Object.keys(b.micro).length ? JSON.stringify(b.micro) : null);
 const words = (a, max) => Array.isArray(a) && a.length <= max && a.every((s) => typeof s === "string" && s.trim() && s.length <= 30);
 
 // D1-backed store so USDA matches survive between requests (free plan: 50 subrequests per request)
@@ -49,12 +55,17 @@ const routes = [
   }],
   ["POST", /^\/api\/sets$/, async ({ env, body }) => {
     const b = await body();
-    const ok = DATE.test(b.date) && typeof b.exercise_id === "string" && b.exercise_id.length <= 64
-      && num(b.weight, 2000) && Number.isInteger(b.reps) && b.reps >= 1 && b.reps <= 200;
+    const ok = DATE.test(b.date) && typeof b.exercise_id === "string" && b.exercise_id.length <= 64 && setOk(b);
     if (!ok) return bad("invalid set");
-    const r = await env.DB.prepare("INSERT INTO sets (date, exercise_id, weight, reps) VALUES (?,?,?,?)")
-      .bind(b.date, b.exercise_id, b.weight, b.reps).run();
+    const r = await env.DB.prepare("INSERT INTO sets (date, exercise_id, weight, reps, note) VALUES (?,?,?,?,?)")
+      .bind(b.date, b.exercise_id, b.weight, b.reps, b.note?.trim() || null).run();
     return json({ id: r.meta.last_row_id }, 201);
+  }],
+  ["PATCH", /^\/api\/sets\/(\d+)$/, async ({ env, body }, m) => {
+    const b = await body();
+    if (!setOk(b)) return bad("invalid set");
+    const r = await env.DB.prepare("UPDATE sets SET weight = ?, reps = ?, note = ? WHERE id = ?").bind(b.weight, b.reps, b.note?.trim() || null, Number(m[1])).run();
+    return r.meta.changes ? json({ ok: true }) : json({ error: "not found" }, 404);
   }],
   ["DELETE", /^\/api\/sets\/(\d+)$/, async ({ env }, m) => {
     await env.DB.prepare("DELETE FROM sets WHERE id = ?").bind(Number(m[1])).run();
@@ -91,15 +102,17 @@ const routes = [
   }],
   ["POST", /^\/api\/food$/, async ({ env, body }) => {
     const b = await body();
-    const ok = DATE.test(b.date) && typeof b.name === "string" && b.name.trim() && b.name.length <= 120
-      && (b.grams == null || num(b.grams, 10000)) && num(b.kcal, 5000) && num(b.protein, 1000) && num(b.carbs, 1000) && num(b.fat, 1000)
-      && (b.fiber == null || num(b.fiber, 1000)) && (b.meal == null || MEALS.includes(b.meal))
-      && (b.micro == null || (typeof b.micro === "object" && Object.entries(b.micro).every(([k, v]) => MICRO_KEYS.includes(k) && num(v, 100000))));
-    if (!ok) return bad("invalid food");
-    const micro = b.micro && Object.keys(b.micro).length ? JSON.stringify(b.micro) : null;
+    if (!DATE.test(b.date) || !foodOk(b)) return bad("invalid food");
     const r = await env.DB.prepare("INSERT INTO food_log (date, name, grams, kcal, protein, carbs, fat, meal, fiber, micro) VALUES (?,?,?,?,?,?,?,?,?,?)")
-      .bind(b.date, b.name.trim(), b.grams ?? null, b.kcal, b.protein, b.carbs, b.fat, b.meal ?? null, b.fiber ?? null, micro).run();
+      .bind(b.date, b.name.trim(), b.grams ?? null, b.kcal, b.protein, b.carbs, b.fat, b.meal ?? null, b.fiber ?? null, microJson(b)).run();
     return json({ id: r.meta.last_row_id }, 201);
+  }],
+  ["PATCH", /^\/api\/food\/(\d+)$/, async ({ env, body }, m) => {
+    const b = await body();
+    if (!foodOk(b)) return bad("invalid food");
+    const r = await env.DB.prepare("UPDATE food_log SET name = ?, grams = ?, kcal = ?, protein = ?, carbs = ?, fat = ?, meal = ?, fiber = ?, micro = ? WHERE id = ?")
+      .bind(b.name.trim(), b.grams ?? null, b.kcal, b.protein, b.carbs, b.fat, b.meal ?? null, b.fiber ?? null, microJson(b), Number(m[1])).run();
+    return r.meta.changes ? json({ ok: true }) : json({ error: "not found" }, 404);
   }],
   ["DELETE", /^\/api\/food\/(\d+)$/, async ({ env }, m) => {
     await env.DB.prepare("DELETE FROM food_log WHERE id = ?").bind(Number(m[1])).run();

@@ -10,7 +10,7 @@ export const dayIdx = () => { const [d, i] = S.settings.anchor.split("|"); retur
 // ---------- offline: sets logged with no signal wait in the phone's storage, then sync ----------
 const QK = "setq";
 const queue = () => cache.get(QK, []);
-const pendingToday = () => queue().filter((q) => q.date === S.today).map((q) => ({ id: "q" + q.t, date: q.date, exercise_id: q.exercise_id, weight: q.weight, reps: q.reps, pending: true }));
+const pendingToday = () => queue().filter((q) => q.date === S.today).map((q) => ({ id: "q" + q.t, date: q.date, exercise_id: q.exercise_id, weight: q.weight, reps: q.reps, note: q.note ?? null, pending: true }));
 export const loadToday = async () => {
   let rows;
   try { rows = await api("/api/sets?date=" + S.today); cache.set("setsToday", { date: S.today, rows }); }
@@ -28,7 +28,7 @@ export const flushQueue = () => (flushing ??= sendQueue().finally(() => { flushi
 async function sendQueue() {
   let n = 0;
   for (const r of queue()) {
-    try { await api("/api/sets", { method: "POST", body: { date: r.date, exercise_id: r.exercise_id, weight: r.weight, reps: r.reps } }); }
+    try { await api("/api/sets", { method: "POST", body: { date: r.date, exercise_id: r.exercise_id, weight: r.weight, reps: r.reps, note: r.note } }); }
     catch { break; }
     cache.set(QK, queue().filter((x) => x.t !== r.t)); n++;
   }
@@ -58,6 +58,8 @@ function weekStrip() {
   }).join("")}</div>`;
 }
 
+const quickSteps = () => `<div class="row chips">${[-10, -2.5, 2.5, 10].map((d) => `<button class="chip sm" data-act="wstep" data-d="${d}" aria-label="${d > 0 ? "Add" : "Take off"} ${Math.abs(d)} pounds">${d > 0 ? "+" : "−"}${Math.abs(d)}</button>`).join("")}</div>`;
+
 function exCard(spec, n) {
   const e = byId[spec.id];
   const done = S.sets.filter((s) => s.exercise_id === spec.id);
@@ -77,8 +79,9 @@ function exCard(spec, n) {
     ${warm}
     ${last.length ? `<div class="dim">Last time: ${last.map((s) => `${s.weight}×${s.reps}`).join(", ")}</div>` : ""}
     ${done.length ? `<div class="row chips">${done.map((s, k) => { const pr = best > 0 && e1rm(s.weight, s.reps) > best;
-      return `<span class="logged ${pr ? "pr" : ""}">${pr ? "🏆 " : ""}${s.pending ? "⏳ " : ""}${k + 1}. ${s.weight} lb × ${s.reps}<button class="x" data-act="del" data-id="${s.id}" aria-label="Remove set ${k + 1}">✕</button></span>`; }).join("")}</div>` : ""}
+      return `<span class="logged ${pr ? "pr" : ""}" role="button" tabindex="0" data-act="editset" data-id="${s.id}" aria-label="Edit set ${k + 1}: ${s.weight} pounds, ${s.reps} reps">${pr ? "🏆 " : ""}${s.pending ? "⏳ " : ""}${k + 1}. ${s.weight} lb × ${s.reps}${s.note ? `<span class="note" title="${esc(s.note)}">📝</span>` : ""}</span>`; }).join("")}</div><div class="dim small">Tap a set to change or remove it.</div>` : ""}
     <div class="inputs"><div><label>Weight (lb)</label>${stepper("w", w, 5, "weight in pounds")}</div><div><label>Reps</label>${stepper("r", reps, 1, "reps")}</div></div>
+    ${quickSteps()}
     <button class="btn primary wide" data-act="add">${full ? "Add an extra set" : `Log set ${done.length + 1}`}</button>
     <div class="row between sub"><button class="link" data-act="chart">${S.chart === spec.id ? "Hide progress" : "See progress"}</button>
       ${spec.i >= 0 ? `<button class="link" data-act="swapToday">Swap exercise</button>` : ""}</div></div>`;
@@ -223,7 +226,7 @@ async function history() {
   if (!dates.length) return `<div class="card center"><div style="font-size:2.5rem">📒</div><p><b>No workouts yet.</b></p><p class="dim">Your sessions will show up here.</p></div>`;
   return dates.map((d) => { const vol = Object.values(by[d]).flat().reduce((a, r) => a + r.weight * r.reps, 0);
     return `<div class="card"><div class="meal-h"><h2>${new Date(d + "T12:00:00").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</h2><span class="dim">${fmt(vol)} lb</span></div>
-    ${Object.entries(by[d]).map(([id, rows]) => `<div><b>${esc(byId[id]?.name ?? id)}</b> <span class="dim">${rows.map((r) => `${r.weight}×${r.reps}`).join(", ")}</span></div>`).join("")}</div>`; }).join("");
+    ${Object.entries(by[d]).map(([id, rows]) => `<div class="item"><b>${esc(byId[id]?.name ?? id)}</b><div class="row chips">${rows.map((r) => `<span class="logged" role="button" tabindex="0" data-act="editset" data-id="${r.id}" aria-label="Edit ${r.weight} pounds, ${r.reps} reps">${r.weight} × ${r.reps}${r.note ? `<span class="note" title="${esc(r.note)}">📝</span>` : ""}</span>`).join("")}</div></div>`).join("")}</div>`; }).join("");
 }
 
 export async function renderTrain() {
@@ -239,6 +242,43 @@ function openSwap(di, ei) {
     ${alts.map((e) => `<div class="card ${e.roles[g] === "preferred" ? "pref" : ""}"><div class="row between"><b>${esc(e.name)}</b>${badge(e.ev)}</div>
       <div class="dim">${esc(e.equip)}</div><p class="small">${esc(e.why)}</p>
       <button class="btn" data-act="doswap" data-di="${di}" data-ei="${ei}" data-id="${e.id}">Use this</button></div>`).join("") || "<p>No other options for this muscle.</p>"}`);
+}
+
+const findSet = (id) => [...S.sets, ...(S.rangeSets ?? [])].find((s) => String(s.id) === String(id));
+// remove a set (saved, or still waiting in the offline queue); returns what was removed so it can be put back
+async function removeSet(id) {
+  id = String(id);
+  const row = findSet(id);
+  if (id.startsWith("q")) cache.set(QK, queue().filter((q) => "q" + q.t !== id));
+  else await api("/api/sets/" + id, { method: "DELETE" });
+  await Promise.all([loadToday(), row && loadHist(row.exercise_id)]); S.rangeSets = null;
+  return row;
+}
+async function restoreSet(r) {
+  const row = { date: r.date, exercise_id: r.exercise_id, weight: r.weight, reps: r.reps, note: r.note ?? undefined };
+  if (r.pending) cache.set(QK, [...queue(), { ...row, t: Number(String(r.id).slice(1)) }]);
+  else await api("/api/sets", { method: "POST", body: row });
+  await Promise.all([loadToday(), loadHist(r.exercise_id)]); S.rangeSets = null;
+}
+async function logSet(id, weight, reps) {
+  const best = prevBest(id), row = { date: S.today, exercise_id: id, weight, reps };
+  let queued = false, undo;
+  try { const r = await api("/api/sets", { method: "POST", body: row }); undo = () => removeSet(r.id); }
+  catch (e) {
+    if (!e.offline) throw e;
+    queued = true; const t = Date.now(); cache.set(QK, [...queue(), { ...row, t }]); undo = () => removeSet("q" + t);
+    toast("No signal: saved on your phone, it will sync later 📶");
+  }
+  await Promise.all([loadToday(), loadHist(id)]);
+  S.rangeSets = null; haptic();
+  if (best > 0 && e1rm(weight, reps) > best) { toast("New personal best! 🏆", undo); confetti(80); } else if (!queued) toast("Set logged ✓", undo);
+  S.rest = { end: Date.now() + (S.profile.restSec || 120) * 1000, total: S.profile.restSec || 120 };
+  // finished this exercise: bring the next unfinished one into view
+  setTimeout(() => {
+    const c = document.querySelector(`[data-ex="${id}"]`);
+    if (!c?.classList.contains("complete")) return;
+    [...document.querySelectorAll(".ex:not(.complete)")].find((x) => x.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_PRECEDING)?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, 450);
 }
 
 Object.assign(ACTIONS, {
@@ -257,22 +297,34 @@ Object.assign(ACTIONS, {
   chart: (t, card) => { S.chart = S.chart === card.dataset.ex ? null : card.dataset.ex; },
   exinfo: async (t) => { await exSheet(t.dataset.id); return false; },
   reorder: () => { S.reorder = !S.reorder; },
-  del: async (t, card) => {
-    if (t.dataset.id.startsWith("q")) cache.set(QK, queue().filter((q) => "q" + q.t !== t.dataset.id));
-    else await api("/api/sets/" + t.dataset.id, { method: "DELETE" });
-    await Promise.all([loadToday(), loadHist(card.dataset.ex)]); S.rangeSets = null; },
-  add: async (t, card) => {
-    const id = card.dataset.ex, weight = parseFloat($("[name=w]", card).value), reps = parseInt($("[name=r]", card).value, 10);
+  wstep: (t) => { const inp = $("[name=w]", t.closest("[data-ex], .sheet-card")); inp.value = Math.max(0, r1((parseFloat(inp.value) || 0) + Number(t.dataset.d))); return false; },
+  editset: (t) => {
+    const s = findSet(t.dataset.id);
+    if (!s) return false;
+    openSheet(`<h2>Edit set</h2><div class="dim">${esc(byId[s.exercise_id]?.name ?? s.exercise_id)} · ${new Date(s.date + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</div>
+      <div class="inputs"><div><label>Weight (lb)</label>${stepper("w", s.weight, 5, "weight in pounds")}</div><div><label>Reps</label>${stepper("r", s.reps, 1, "reps")}</div></div>
+      ${quickSteps()}
+      <input name="note" maxlength="120" value="${esc(s.note ?? "")}" placeholder="Note (optional), like seat 4 or left shoulder tight" aria-label="Note">
+      <button class="btn primary wide" data-act="saveset" data-id="${s.id}">Save</button>
+      <button class="btn danger wide" data-act="delset" data-id="${s.id}">Remove this set</button>`);
+    return false;
+  },
+  saveset: async (t) => {
+    const id = String(t.dataset.id), s = findSet(id), weight = parseFloat($("#sheet [name=w]").value), reps = parseInt($("#sheet [name=r]").value, 10), note = $("#sheet [name=note]").value.trim().slice(0, 120);
     if (!(weight >= 0) || !(reps >= 1)) throw new Error("Type the weight and the number of reps.");
-    const best = prevBest(id);
-    const row = { date: S.today, exercise_id: id, weight, reps };
-    let queued = false;
-    try { await api("/api/sets", { method: "POST", body: row }); }
-    catch (e) { if (!e.offline) throw e; queued = true; cache.set(QK, [...queue(), { ...row, t: Date.now() }]); toast("No signal: saved on your phone, it will sync later 📶"); }
-    await Promise.all([loadToday(), loadHist(id)]);
-    S.rangeSets = null; haptic();
-    if (best > 0 && e1rm(weight, reps) > best) { toast("New personal best! 🏆"); confetti(80); } else if (!queued) toast("Set logged ✓");
-    S.rest = { end: Date.now() + (S.profile.restSec || 120) * 1000, total: S.profile.restSec || 120 };
+    if (id.startsWith("q")) cache.set(QK, queue().map((q) => ("q" + q.t === id ? { ...q, weight, reps, note } : q)));
+    else await api("/api/sets/" + id, { method: "PATCH", body: { weight, reps, note } });
+    closeSheet(); await Promise.all([loadToday(), loadHist(s.exercise_id)]); S.rangeSets = null; haptic(); toast("Set updated ✓");
+  },
+  delset: async (t) => {
+    closeSheet();
+    const row = await removeSet(t.dataset.id);
+    toast("Set removed", () => restoreSet(row));
+  },
+  add: async (t, card) => {
+    const weight = parseFloat($("[name=w]", card).value), reps = parseInt($("[name=r]", card).value, 10);
+    if (!(weight >= 0) || !(reps >= 1)) throw new Error("Type the weight and the number of reps.");
+    await logSet(card.dataset.ex, weight, reps);
   },
   finish: () => { finishSheet(); return false; },
   shareWorkout: async () => { try { await navigator.share({ text: S.share }); } catch {} return false; },

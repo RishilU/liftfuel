@@ -57,12 +57,16 @@ export function targets() {
 }
 
 let toastTimer;
-export function toast(msg) {
+// undo (optional): a function that reverses what just happened; the toast then shows an Undo button for a few seconds
+export function toast(msg, undo) {
   const el = $("#toast");
   el.textContent = msg; el.hidden = false;
+  S.undo = undo ?? null;
+  if (undo) el.insertAdjacentHTML("beforeend", ` <button class="tundo" data-act="undo">Undo</button>`);
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.hidden = true; }, 2800);
+  toastTimer = setTimeout(() => { el.hidden = true; S.undo = null; }, undo ? 6000 : 2800);
 }
+ACTIONS.undo = async () => { const f = S.undo; S.undo = null; $("#toast").hidden = true; await f?.(); };
 export function openSheet(html) {
   $("#sheet").innerHTML = `<div class="sheet-card" role="dialog" aria-modal="true">${html}<button class="btn" data-act="closeSheet">Close</button></div>`;
   $("#sheet").hidden = false;
