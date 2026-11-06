@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LiftFuel</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icon-180.png">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="LiftFuel">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d1013">
+<link rel="stylesheet" href="/style.css">
+<link rel="modulepreload" href="/lib.js">
+<link rel="modulepreload" href="/util.js">
+<link rel="modulepreload" href="/targets.js">
+<link rel="modulepreload" href="/fx.js">
+<link rel="modulepreload" href="/routine.js">
+<link rel="modulepreload" href="/plan.js">
+<link rel="modulepreload" href="/stats.js">
+<link rel="modulepreload" href="/lifting.js">
+<link rel="modulepreload" href="/coach.js">
+<link rel="modulepreload" href="/nutri.js">
+<link rel="modulepreload" href="/eat.js">
+<link rel="modulepreload" href="/dish.js">
+<link rel="modulepreload" href="/cook.js">
+<link rel="modulepreload" href="/train.js">
+<link rel="modulepreload" href="/progress.js">
+<link rel="modulepreload" href="/profile.js">
+<link rel="modulepreload" href="/settings.js">
+</head>
+<body>
+<div id="offline" hidden role="status">You're offline. Changes can't be saved until you're back online.</div>
+<main id="view" aria-live="polite">
+  <div class="skel" style="height:34px;width:55%;margin:12px 0"></div>
+  <div class="skel" style="height:190px;margin:12px 0"></div>
+  <div class="skel" style="height:130px;margin:12px 0"></div>
+  <div class="skel" style="height:90px;margin:12px 0"></div>
+</main>
+<div id="rest" hidden></div>
+<div id="toast" role="status" hidden></div>
+<div id="sheet" hidden></div>
+<nav id="tabs" aria-label="Main">
+  <button data-tab="eat"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg><span>Eat</span></button>
+  <button data-tab="cook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h16v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/><path d="M2 11h20M9 7c0-2 2-2 2-4M14 7c0-2 2-2 2-4"/></svg><span>Cook</span></button>
+  <button data-tab="train"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"/></svg><span>Train</span></button>
+  <button data-tab="progress"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V4M4 20h16M8 16l4-5 3 3 5-7"/></svg><span>Progress</span></button>
+</nav>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

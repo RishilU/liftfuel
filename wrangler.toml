@@ -1,0 +1,15 @@
+name = "liftfuel"
+main = "src/worker.js"
+compatibility_date = "2025-01-01"
+
+[assets]
+directory = "./public"
+run_worker_first = ["/api/*"]
+
+[ai]
+binding = "AI"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gym-food"
+database_id = "a0d69539-3ed4-464c-a170-d4e52c0e53b1"

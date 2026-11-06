@@ -1,0 +1,708 @@
+{
+ "sources": {
+  "bench_angle": {
+   "label": "Non-uniform excitation of pec major, flat vs inclined bench (EMG)",
+   "url": "https://pubmed.ncbi.nlm.nih.gov/34644424/"
+  },
+  "rom_review": {
+   "label": "Kassiano 2023 review: range of motion & hypertrophy (muscles like quads, biceps, triceps favour long lengths)",
+   "url": "https://pubmed.ncbi.nlm.nih.gov/36662126/"
+  },
+  "delt_emg": {
+   "label": "EMG of deltoids across bench, fly, press, lateral raise",
+   "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7706677"
+  },
+  "triceps_oh": {
+   "label": "Maeo 2022: overhead vs neutral arm triceps training (MRI, 12 wk)",
+   "url": "https://doi.org/10.1080/17461391.2022.2100279"
+  },
+  "biceps_preacher": {
+   "label": "Preacher vs Bayesian curl: similar growth (2025)",
+   "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11906226/"
+  },
+  "ham_curl": {
+   "label": "Maeo 2021: seated vs prone leg curl hamstring growth",
+   "url": "https://pubmed.ncbi.nlm.nih.gov/33009197/"
+  },
+  "glute_squat": {
+   "label": "Plotkin 2023: hip thrust vs back squat, glute & thigh growth",
+   "url": "https://pubmed.ncbi.nlm.nih.gov/37877099/"
+  },
+  "calf_rom": {
+   "label": "Kassiano 2023: calf raises at long muscle lengths",
+   "url": "https://pubmed.ncbi.nlm.nih.gov/37015016/"
+  },
+  "load_meta": {
+   "label": "Schoenfeld 2017 meta-analysis: low- vs high-load training (21 studies; heavier loads gave greater 1RM strength gains)",
+   "url": "https://pubmed.ncbi.nlm.nih.gov/28834797/"
+  },
+  "load_fiber": {
+   "label": "Low- vs high-load training, muscle fibre hypertrophy meta-analysis (no significant difference)",
+   "url": "https://pubmed.ncbi.nlm.nih.gov/33312275/"
+  },
+  "failure_meta": {
+   "label": "Proximity to failure and hypertrophy: systematic review with meta-analysis (no evidence that training to failure is superior)",
+   "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9935748/"
+  },
+  "failure_rir": {
+   "label": "8-week trial: training to failure vs leaving 1-2 reps in reserve gave similar growth in resistance-trained people",
+   "url": "https://pubmed.ncbi.nlm.nih.gov/38393985/"
+  },
+  "volume_meta": {
+   "label": "Schoenfeld 2017: weekly volume dose-response (more weekly sets, more growth; unclear beyond ~10 sets per muscle)",
+   "url": "https://pubmed.ncbi.nlm.nih.gov/27433992/"
+  },
+  "freq_meta": {
+   "label": "Schoenfeld 2018: training frequency (no meaningful effect when weekly volume is equal)",
+   "url": "https://pubmed.ncbi.nlm.nih.gov/30558493/"
+  }
+ },
+ "groups": [
+  {
+   "id": "chest",
+   "name": "Chest"
+  },
+  {
+   "id": "back",
+   "name": "Back"
+  },
+  {
+   "id": "shoulders",
+   "name": "Shoulders"
+  },
+  {
+   "id": "biceps",
+   "name": "Biceps"
+  },
+  {
+   "id": "triceps",
+   "name": "Triceps"
+  },
+  {
+   "id": "quads",
+   "name": "Quads"
+  },
+  {
+   "id": "hamstrings",
+   "name": "Hamstrings"
+  },
+  {
+   "id": "glutes",
+   "name": "Glutes"
+  },
+  {
+   "id": "calves",
+   "name": "Calves"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "incline-db-press",
+   "name": "Incline dumbbell press (~30°)",
+   "roles": {
+    "chest": "preferred"
+   },
+   "equip": "dumbbells, bench",
+   "ev": "direct",
+   "why": "EMG: upper pec activation peaked around a 30° incline; flat bench favours the mid/lower fibres. EMG shows activation, not proven growth.",
+   "src": [
+    "bench_angle"
+   ]
+  },
+  {
+   "id": "barbell-bench",
+   "name": "Barbell bench press",
+   "roles": {
+    "chest": "alt"
+   },
+   "equip": "barbell, bench",
+   "ev": "direct",
+   "why": "Consistently among the highest pec major activation in EMG comparisons; easy to load progressively.",
+   "src": [
+    "bench_angle"
+   ]
+  },
+  {
+   "id": "machine-chest-press",
+   "name": "Machine chest press",
+   "roles": {
+    "chest": "alt"
+   },
+   "equip": "machine",
+   "ev": "limited",
+   "why": "Stable and easy to train close to failure. No direct growth study found; chosen for practicality.",
+   "src": []
+  },
+  {
+   "id": "cable-fly",
+   "name": "Cable fly (stretch at the bottom)",
+   "roles": {
+    "chest": "alt"
+   },
+   "equip": "cables",
+   "ev": "principle",
+   "why": "Loads the pec in the lengthened position; extrapolated from the muscle-length literature, not a chest-specific trial.",
+   "src": [
+    "rom_review"
+   ]
+  },
+  {
+   "id": "push-up",
+   "name": "Push-up",
+   "roles": {
+    "chest": "alt"
+   },
+   "equip": "bodyweight",
+   "ev": "limited",
+   "why": "Reported to match bench press activation at comparable relative load; good fallback with no equipment.",
+   "src": []
+  },
+  {
+   "id": "lat-pulldown",
+   "name": "Lat pulldown",
+   "roles": {
+    "back": "preferred"
+   },
+   "equip": "cable machine",
+   "ev": "limited",
+   "why": "Lat EMG appears similar to pull-ups and the load is easy to adjust. Direct back-growth evidence is thin; this is a practical pick.",
+   "src": []
+  },
+  {
+   "id": "pull-up",
+   "name": "Pull-up",
+   "roles": {
+    "back": "alt"
+   },
+   "equip": "bar",
+   "ev": "limited",
+   "why": "Similar lat activation to pulldowns in the studies I found; use when you can hit your rep range.",
+   "src": []
+  },
+  {
+   "id": "chest-supported-row",
+   "name": "Chest-supported row",
+   "roles": {
+    "back": "alt"
+   },
+   "equip": "machine or bench + dumbbells",
+   "ev": "limited",
+   "why": "Removes lower-back fatigue as the limiter so the back works harder. Practical rationale, no direct trial found.",
+   "src": []
+  },
+  {
+   "id": "seated-cable-row",
+   "name": "Seated cable row",
+   "roles": {
+    "back": "alt"
+   },
+   "equip": "cables",
+   "ev": "limited",
+   "why": "A 2004 EMG study found a high lat-to-biceps ratio for wide-grip pulldown and seated row.",
+   "src": []
+  },
+  {
+   "id": "one-arm-db-row",
+   "name": "One-arm dumbbell row",
+   "roles": {
+    "back": "alt"
+   },
+   "equip": "dumbbell, bench",
+   "ev": "limited",
+   "why": "Simple, unilateral, easy to progress.",
+   "src": []
+  },
+  {
+   "id": "lateral-raise",
+   "name": "Lateral raise (cable or dumbbell)",
+   "roles": {
+    "shoulders": "preferred"
+   },
+   "equip": "dumbbells or cables",
+   "ev": "direct",
+   "why": "Highest medial-delt activation in an EMG comparison with presses and flys. Medial delt is the part presses train least.",
+   "src": [
+    "delt_emg"
+   ]
+  },
+  {
+   "id": "db-shoulder-press",
+   "name": "Dumbbell shoulder press",
+   "roles": {
+    "shoulders": "alt"
+   },
+   "equip": "dumbbells, bench",
+   "ev": "limited",
+   "why": "Trains front delts hard and shares work with triceps; pairs with lateral raises.",
+   "src": []
+  },
+  {
+   "id": "machine-shoulder-press",
+   "name": "Machine shoulder press",
+   "roles": {
+    "shoulders": "alt"
+   },
+   "equip": "machine",
+   "ev": "limited",
+   "why": "Stable, easy to take close to failure.",
+   "src": []
+  },
+  {
+   "id": "reverse-pec-deck",
+   "name": "Reverse pec deck / rear-delt fly",
+   "roles": {
+    "shoulders": "alt"
+   },
+   "equip": "machine",
+   "ev": "limited",
+   "why": "Isolates the rear delt, which bench and press movements barely hit.",
+   "src": []
+  },
+  {
+   "id": "face-pull",
+   "name": "Face pull",
+   "roles": {
+    "shoulders": "alt"
+   },
+   "equip": "cables",
+   "ev": "limited",
+   "why": "Rear delt and upper back; practical rather than study-backed.",
+   "src": []
+  },
+  {
+   "id": "incline-db-curl",
+   "name": "Incline dumbbell curl",
+   "roles": {
+    "biceps": "preferred"
+   },
+   "equip": "dumbbells, bench",
+   "ev": "principle",
+   "why": "Biceps stretched under load (long muscle length). Evidence is mixed: one trial favoured long-length curls, a 2025 trial found preacher and Bayesian curls similar.",
+   "src": [
+    "rom_review",
+    "biceps_preacher"
+   ]
+  },
+  {
+   "id": "preacher-curl",
+   "name": "Preacher curl",
+   "roles": {
+    "biceps": "alt"
+   },
+   "equip": "EZ bar or dumbbell, preacher bench",
+   "ev": "direct",
+   "why": "Compared head to head with Bayesian curls: similar growth.",
+   "src": [
+    "biceps_preacher"
+   ]
+  },
+  {
+   "id": "bayesian-curl",
+   "name": "Bayesian cable curl",
+   "roles": {
+    "biceps": "alt"
+   },
+   "equip": "cable",
+   "ev": "direct",
+   "why": "Arm behind the body, biceps stretched; similar growth to preacher curls in a 2025 trial.",
+   "src": [
+    "biceps_preacher"
+   ]
+  },
+  {
+   "id": "ez-bar-curl",
+   "name": "EZ-bar curl",
+   "roles": {
+    "biceps": "alt"
+   },
+   "equip": "EZ bar",
+   "ev": "limited",
+   "why": "Easy to progress heavy; the standard fallback.",
+   "src": []
+  },
+  {
+   "id": "hammer-curl",
+   "name": "Hammer curl",
+   "roles": {
+    "biceps": "alt"
+   },
+   "equip": "dumbbells",
+   "ev": "limited",
+   "why": "Hits brachialis and brachioradialis too; practical, no direct trial found.",
+   "src": []
+  },
+  {
+   "id": "overhead-cable-ext",
+   "name": "Overhead cable triceps extension",
+   "roles": {
+    "triceps": "preferred"
+   },
+   "equip": "cable",
+   "ev": "direct",
+   "why": "In a 12-week MRI study the overhead arm position grew the long head ~28.5% vs ~19.6% for the neutral position, with the other heads also favouring overhead.",
+   "src": [
+    "triceps_oh"
+   ]
+  },
+  {
+   "id": "overhead-db-ext",
+   "name": "Overhead dumbbell extension",
+   "roles": {
+    "triceps": "alt"
+   },
+   "equip": "dumbbell",
+   "ev": "principle",
+   "why": "Same overhead position as the study without needing a cable; the study itself used cable extensions.",
+   "src": [
+    "triceps_oh"
+   ]
+  },
+  {
+   "id": "pushdown",
+   "name": "Cable pushdown",
+   "roles": {
+    "triceps": "alt"
+   },
+   "equip": "cable",
+   "ev": "direct",
+   "why": "This is the neutral-arm comparator in the study: it works, just grew the long head less.",
+   "src": [
+    "triceps_oh"
+   ]
+  },
+  {
+   "id": "skullcrusher",
+   "name": "Skullcrusher / lying extension",
+   "roles": {
+    "triceps": "alt"
+   },
+   "equip": "EZ bar or dumbbells",
+   "ev": "limited",
+   "why": "Arms angled back puts the long head partly lengthened; practical pick, not tested directly.",
+   "src": []
+  },
+  {
+   "id": "dips",
+   "name": "Dips",
+   "roles": {
+    "triceps": "alt",
+    "chest": "alt"
+   },
+   "equip": "dip bars",
+   "ev": "limited",
+   "why": "Heavy compound for triceps and lower chest; no direct trial found.",
+   "src": []
+  },
+  {
+   "id": "back-squat",
+   "name": "Back squat (deep)",
+   "roles": {
+    "quads": "preferred",
+    "glutes": "alt"
+   },
+   "equip": "barbell, rack",
+   "ev": "direct",
+   "why": "Squat training grew the quads and adductors more than hip thrusts, and glutes about equally (9-week trial, untrained). Quads tend to grow best at long muscle lengths, so go deep.",
+   "src": [
+    "glute_squat",
+    "rom_review"
+   ]
+  },
+  {
+   "id": "leg-press",
+   "name": "Leg press (deep)",
+   "roles": {
+    "quads": "alt"
+   },
+   "equip": "machine",
+   "ev": "principle",
+   "why": "Stable way to train the quads through a long range; extrapolated from the range-of-motion review.",
+   "src": [
+    "rom_review"
+   ]
+  },
+  {
+   "id": "hack-squat",
+   "name": "Hack squat",
+   "roles": {
+    "quads": "alt"
+   },
+   "equip": "machine",
+   "ev": "principle",
+   "why": "Deep, stable quad loading; extrapolated from the range-of-motion review.",
+   "src": [
+    "rom_review"
+   ]
+  },
+  {
+   "id": "leg-extension",
+   "name": "Leg extension",
+   "roles": {
+    "quads": "alt"
+   },
+   "equip": "machine",
+   "ev": "principle",
+   "why": "Isolation; a 2022 knee-extension study found partials at long muscle lengths grew the quads well. The rectus femoris also gets worked.",
+   "src": [
+    "rom_review"
+   ]
+  },
+  {
+   "id": "bulgarian-split-squat",
+   "name": "Bulgarian split squat",
+   "roles": {
+    "quads": "alt",
+    "glutes": "alt"
+   },
+   "equip": "dumbbells, bench",
+   "ev": "limited",
+   "why": "Deep unilateral loading; practical pick when the spine or the gym is the limit.",
+   "src": []
+  },
+  {
+   "id": "seated-leg-curl",
+   "name": "Seated leg curl",
+   "roles": {
+    "hamstrings": "preferred"
+   },
+   "equip": "machine",
+   "ev": "direct",
+   "why": "Whole-hamstring volume grew ~14% with seated vs ~9% with prone curls in a 12-week unilateral trial (untrained adults).",
+   "src": [
+    "ham_curl"
+   ]
+  },
+  {
+   "id": "rdl",
+   "name": "Romanian deadlift",
+   "roles": {
+    "hamstrings": "alt",
+    "glutes": "alt"
+   },
+   "equip": "barbell or dumbbells",
+   "ev": "principle",
+   "why": "Hamstrings loaded while stretched at the hip; same logic as the seated curl, not tested head to head here.",
+   "src": [
+    "ham_curl"
+   ]
+  },
+  {
+   "id": "lying-leg-curl",
+   "name": "Lying leg curl",
+   "roles": {
+    "hamstrings": "alt"
+   },
+   "equip": "machine",
+   "ev": "direct",
+   "why": "The comparator in the study: still grows the hamstrings, just less than seated.",
+   "src": [
+    "ham_curl"
+   ]
+  },
+  {
+   "id": "back-extension",
+   "name": "45° back extension",
+   "roles": {
+    "hamstrings": "alt",
+    "glutes": "alt"
+   },
+   "equip": "back extension bench",
+   "ev": "limited",
+   "why": "Practical hip-hinge accessory; no direct trial found.",
+   "src": []
+  },
+  {
+   "id": "hip-thrust",
+   "name": "Barbell hip thrust",
+   "roles": {
+    "glutes": "preferred"
+   },
+   "equip": "barbell, bench",
+   "ev": "direct",
+   "why": "Similar glute growth to back squats in a 9-week trial, with higher glute activation. Squats grew thighs more, so thrusts are the glute-only option.",
+   "src": [
+    "glute_squat"
+   ]
+  },
+  {
+   "id": "standing-calf-raise",
+   "name": "Standing calf raise (full stretch)",
+   "roles": {
+    "calves": "preferred"
+   },
+   "equip": "machine or step",
+   "ev": "direct",
+   "why": "Lengthened partial reps gave the largest medial gastroc gain in an 8-week trial in young women, though the margin over full range was unclear. Pause in the stretch.",
+   "src": [
+    "calf_rom"
+   ]
+  },
+  {
+   "id": "seated-calf-raise",
+   "name": "Seated calf raise",
+   "roles": {
+    "calves": "alt"
+   },
+   "equip": "machine",
+   "ev": "limited",
+   "why": "Knee bent shifts work toward the soleus; practical pick, not tested head to head here.",
+   "src": []
+  },
+  {
+   "id": "leg-press-calf-raise",
+   "name": "Leg-press calf raise",
+   "roles": {
+    "calves": "alt"
+   },
+   "equip": "leg press",
+   "ev": "limited",
+   "why": "Easy to load and stretch if you have no standing machine.",
+   "src": []
+  },
+  {
+   "id": "single-leg-calf-raise",
+   "name": "Single-leg calf raise off a step",
+   "roles": {
+    "calves": "alt"
+   },
+   "equip": "step, dumbbell",
+   "ev": "limited",
+   "why": "No machine needed; hold a dumbbell to progress.",
+   "src": []
+  },
+  {
+   "id": "conventional-deadlift",
+   "name": "Conventional deadlift",
+   "roles": {
+    "back": "alt",
+    "hamstrings": "alt",
+    "glutes": "alt"
+   },
+   "equip": "barbell",
+   "ev": "limited",
+   "why": "Heavy full-body pull used in strength training. Heavier loads gave greater 1RM strength gains in a meta-analysis; I found no deadlift-specific growth trial.",
+   "src": [
+    "load_meta"
+   ]
+  },
+  {
+   "id": "barbell-ohp",
+   "name": "Barbell overhead press",
+   "roles": {
+    "shoulders": "alt"
+   },
+   "equip": "barbell, rack",
+   "ev": "limited",
+   "why": "Heavy pressing for strength; practical pick, no direct growth trial found.",
+   "src": [
+    "load_meta"
+   ]
+  },
+  {
+   "id": "barbell-row",
+   "name": "Barbell row",
+   "roles": {
+    "back": "alt"
+   },
+   "equip": "barbell",
+   "ev": "limited",
+   "why": "Heavy horizontal pull for strength; practical pick, no direct growth trial found.",
+   "src": [
+    "load_meta"
+   ]
+  },
+  {
+   "id": "incline-machine-press",
+   "name": "Incline chest press machine",
+   "roles": {
+    "chest": "alt"
+   },
+   "equip": "machine",
+   "ev": "limited",
+   "why": "Machine version of an incline press. Machines are stable, so it is easy to train close to failure (common practice, not tested).",
+   "src": []
+  },
+  {
+   "id": "pec-deck",
+   "name": "Pec deck / chest fly machine",
+   "roles": {
+    "chest": "alt"
+   },
+   "equip": "machine",
+   "ev": "principle",
+   "why": "Loads the pec through a long range with the arms out wide; extrapolated from the muscle-length literature, not a chest-specific trial.",
+   "src": [
+    "rom_review"
+   ]
+  },
+  {
+   "id": "dip-machine",
+   "name": "Dip machine",
+   "roles": {
+    "triceps": "alt",
+    "chest": "alt"
+   },
+   "equip": "machine",
+   "ev": "limited",
+   "why": "Machine dip for triceps and lower chest. Machines are stable, so it is easy to train close to failure (common practice, not tested).",
+   "src": []
+  },
+  {
+   "id": "lateral-raise-machine",
+   "name": "Lateral raise machine",
+   "roles": {
+    "shoulders": "alt"
+   },
+   "equip": "machine",
+   "ev": "limited",
+   "why": "Keeps constant tension on the side delt with no swinging. Machines are stable, so it is easy to train close to failure (common practice, not tested).",
+   "src": []
+  },
+  {
+   "id": "machine-row",
+   "name": "Row machine (standing / plate-loaded)",
+   "roles": {
+    "back": "alt"
+   },
+   "equip": "machine",
+   "ev": "limited",
+   "why": "Supported row for the mid-back and lats. Machines are stable, so it is easy to train close to failure (common practice, not tested).",
+   "src": []
+  },
+  {
+   "id": "t-bar-row",
+   "name": "T-bar row",
+   "roles": {
+    "back": "alt"
+   },
+   "equip": "machine",
+   "ev": "limited",
+   "why": "Heavy chest-supported or standing row for the upper back. No direct trial found.",
+   "src": []
+  },
+  {
+   "id": "bicep-curl",
+   "name": "Bicep curl (dumbbell or bar)",
+   "roles": {
+    "biceps": "alt"
+   },
+   "equip": "dumbbells or barbell",
+   "ev": "limited",
+   "why": "The standard curl. Incline and preacher curls load the stretched position more, and that is where the research points.",
+   "src": []
+  },
+  {
+   "id": "pendulum-squat",
+   "name": "Pendulum squat",
+   "roles": {
+    "quads": "alt"
+   },
+   "equip": "machine",
+   "ev": "principle",
+   "why": "Deep, stable quad loading like the hack squat; extrapolated from the range-of-motion review.",
+   "src": [
+    "rom_review"
+   ]
+  }
+ ]
+}

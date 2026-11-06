@@ -1,0 +1,14 @@
+# Local-only config: same as wrangler.toml minus the AI binding (Workers AI needs a Cloudflare login even in dev).
+name = "liftfuel"
+main = "src/worker.js"
+compatibility_date = "2025-01-01"
+
+[assets]
+directory = "./public"
+run_worker_first = ["/api/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gym-food"
+# replace with the real id from `wrangler d1 create gym-food` before deploying
+database_id = "00000000-0000-0000-0000-000000000000"
