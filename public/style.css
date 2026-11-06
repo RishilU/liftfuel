@@ -274,3 +274,5 @@ html[data-motion=off] *, html[data-motion=off] *::before, html[data-motion=off] 
 .logged[data-act] { cursor: pointer; padding-right: 12px; min-height: 36px; }
 .logged .note { margin-left: 4px; }
 [data-act=editfood] { cursor: pointer; flex: 1; min-width: 0; }
+.heat{display:flex;gap:4px;justify-content:center}.heat div{display:flex;flex-direction:column;gap:4px}
+.heat i{width:20px;height:20px;border-radius:5px;background:var(--line);display:block}.heat i.on{background:var(--accent)}.heat i.fut{background:transparent}

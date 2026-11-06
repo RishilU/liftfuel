@@ -104,7 +104,7 @@ applyTheme(); // use the saved look right away, before anything loads
     S.plan = j("plan", null); S.pantry = j("pantry", []); S.water = j("water", {});
     // water used to be counted in cups
     if (S.settings.waterUnit !== "oz") { S.water = Object.fromEntries(Object.entries(S.water).map(([d, c]) => [d, c * 8])); await saveSetting("water", S.water); await api("/api/settings", { method: "PUT", body: { key: "waterUnit", value: "oz" } }); S.settings.waterUnit = "oz"; } S.saved = j("saved", []); S.mymeals = j("mymeals", []);
-    S.supps = { list: ["Creatine", "Vitamin D", "Vitamin B12"], log: {}, ...j("supps", {}) }; S.favs = j("favs", []); S.cardio = j("cardio", []);
+    S.supps = { list: ["Creatine", "Vitamin D", "Vitamin B12"], log: {}, ...j("supps", {}) }; S.favs = j("favs", []); S.cardio = j("cardio", []); S.daily = j("daily", {});
     S.cook = { ...S.cook, ...j("cook", {}) };
     applyTheme();
     try { localStorage.setItem("ui", JSON.stringify(S.profile.ui ?? null)); } catch {}

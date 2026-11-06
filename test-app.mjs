@@ -89,7 +89,7 @@ assert.deepEqual(g, { chickpeas: 650, "greek yogurt": 1000, "olive oil": 10, "ro
 console.log("app logic checks passed");
 
 // ======== stats, insights, lifting math ========
-import { dayStreak, weekStreak, level, xp, achievements, stalledLifts, insights, mondayOf, weeklySummary, prs } from "./public/stats.js";
+import { dayStreak, weekStreak, level, xp, achievements, stalledLifts, insights, mondayOf, weeklySummary, prs, navyBodyFat, trainingGrid, dailyAvg } from "./public/stats.js";
 import { plateSplit, warmups, repMax } from "./public/lifting.js";
 const T = "2026-11-05"; // a Thursday
 assert.equal(dayStreak([T, dayAgo(1), dayAgo(2)], T), 3);
@@ -180,4 +180,21 @@ import { dishTotals, perServing, labelFood, microPct, sumMicro, topMicros } from
   assert.equal(rec[0].date, "2026-03-05"); assert.equal(rec[0].weight, 110);
   assert.deepEqual(prs([]), []);
   console.log("prs ok");
+}
+
+// body-fat tape estimate, training grid, daily averages
+{
+  const m = navyBodyFat({ sex: "male", height: 70, waist: 32, neck: 15 });
+  assert.ok(m > 12 && m < 17, "male 70in/32/15 is about 14%: " + m);
+  const f = navyBodyFat({ sex: "female", height: 65, waist: 28, neck: 13, hips: 38 });
+  assert.ok(f > 20 && f < 30, "female about 25%: " + f);
+  assert.equal(navyBodyFat({ sex: "female", height: 65, waist: 28, neck: 13 }), null);   // hips needed
+  assert.equal(navyBodyFat({ sex: "male", height: 70, waist: 14, neck: 15 }), null);     // neck wider than waist
+  const g = trainingGrid(["2026-11-03", "2026-11-05"], "2026-11-05", 2);                 // Thu; week starts Mon 2026-11-02
+  assert.equal(g.length, 2); assert.equal(g[1][1].on, 1); assert.equal(g[1][0].on, 0); assert.equal(g[1][3].on, 1); assert.equal(g[1][4], null);
+  assert.equal(g[0][0].day, "2026-10-26");
+  const log = { "2026-11-05": { sleep: 8, steps: 9000 }, "2026-11-04": { sleep: 6 }, "2026-10-20": { sleep: 4 } };
+  assert.equal(dailyAvg(log, "2026-11-05", "sleep").avg, 7); assert.equal(dailyAvg(log, "2026-11-05", "steps").n, 1);
+  assert.equal(dailyAvg({}, "2026-11-05", "sleep"), null);
+  console.log("body fat, grid, daily ok");
 }

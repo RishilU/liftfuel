@@ -1,5 +1,6 @@
 // Small daily trackers: supplements checklist, favorite foods, cardio log. Each one is a saved setting.
-import { $, esc, S, ACTIONS, saveSetting, toast, shiftDay } from "./lib.js";
+import { $, esc, r1, fmt, S, ACTIONS, saveSetting, toast, shiftDay } from "./lib.js";
+import { dailyAvg } from "./stats.js";
 import { logFood } from "./eat.js";
 import { haptic } from "./fx.js";
 
@@ -28,7 +29,23 @@ export const cardioCard = () => {
       <button class="btn primary" data-act="cardioAdd">Add</button></div></div>`;
 };
 
+// ---------- sleep and steps (typed in by hand) ----------
+export const dailyCard = () => {
+  const t = S.daily[S.today] ?? {}, sl = dailyAvg(S.daily, S.today, "sleep"), st = dailyAvg(S.daily, S.today, "steps");
+  return `<div class="card"><div class="meal-h"><h2>😴 Sleep and steps</h2><span class="dim">7-day avg: <b>${sl ? r1(sl.avg) : "–"}</b> h · <b>${st ? fmt(st.avg) : "–"}</b> steps</span></div>
+    <div class="row" id="daily"><input name="sleep" class="num" type="number" inputmode="decimal" min="0" max="24" step="any" placeholder="hours slept" value="${t.sleep ?? ""}" aria-label="Hours slept last night">
+      <input name="steps" class="num" type="number" inputmode="numeric" min="0" max="100000" placeholder="steps" value="${t.steps ?? ""}" aria-label="Steps today"><button class="btn primary" data-act="dailySave">Save</button></div>
+    ${sl && sl.avg < 7 ? `<p class="dim small">Adults are advised to sleep 7 or more hours a night for health (Watson et al., 2015, Sleep). Short sleep also makes hard training feel harder.</p>` : `<p class="dim small">Type last night's sleep and today's steps from your Health app.</p>`}</div>`;
+};
+
 Object.assign(ACTIONS, {
+  dailySave: async () => {
+    const v = (n) => parseFloat($(`#daily [name=${n}]`).value), sleep = v("sleep"), steps = Math.round(v("steps"));
+    if (!(sleep >= 0 && sleep <= 24) && !(steps >= 0)) throw new Error("Type your sleep or your steps.");
+    S.daily[S.today] = { ...(sleep >= 0 && sleep <= 24 ? { sleep } : {}), ...(steps >= 0 && steps <= 100000 ? { steps } : {}) };
+    S.daily = keep(S.daily, 60); haptic(); await saveSetting("daily", S.daily); toast("Saved");
+  },
+
   suppTog: async (t) => {
     const n = S.supps.list[t.dataset.i], now = taken();
     S.supps.log[S.today] = now.includes(n) ? now.filter((x) => x !== n) : [...now, n];

@@ -24,7 +24,7 @@ export const S = {
   body: [], photos: [], pdata: {}, cmpPose: "front", cmpA: null, cmpB: null, measure: "chest",
   // v3
   overview: { workoutDates: [], sets: 0, volume: 0, bests: {}, food: [], weighIns: 0, photos: 0 },
-  water: {}, saved: [], mymeals: [], supps: { list: [], log: {} }, favs: [], cardio: [], dish: null, mealSel: null, cm: null, lastNav: "", prevTab: "eat",
+  water: {}, saved: [], mymeals: [], supps: { list: [], log: {} }, favs: [], cardio: [], daily: {}, dish: null, mealSel: null, cm: null, lastNav: "", prevTab: "eat",
 };
 
 export async function api(path, opts = {}) {

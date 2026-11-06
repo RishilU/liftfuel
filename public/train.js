@@ -4,7 +4,7 @@ import { plateSplit, warmups, repMax } from "./lifting.js";
 import { mondayOf, prs } from "./stats.js";
 import { coach, insightCard } from "./coach.js";
 import { confetti, haptic } from "./fx.js";
-import { cardioCard } from "./extras.js";
+import { cardioCard, dailyCard } from "./extras.js";
 
 export const dayIdx = () => { const [d, i] = S.settings.anchor.split("|"); return (((Number(i) + dayNum(S.today) - dayNum(d)) % 7) + 7) % 7; };
 // ---------- offline: sets logged with no signal wait in the phone's storage, then sync ----------
@@ -115,7 +115,7 @@ async function today() {
     ${notes.map(insightCard).join("")}
     ${S.reorder && cards.length > 1 ? reorderCard(cards) : `${cards.length > 1 ? `<button class="btn wide" data-act="reorder">↕ Reorder today's exercises</button>` : ""}${cards.map(exCard).join("")}`}
     <div class="card"><label class="dim" for="addex">Add another exercise</label><select id="addex" data-change="addex"><option value="">Choose…</option>${exOptions()}</select></div>
-    ${cardioCard()}
+    ${cardioCard()}${dailyCard()}
     ${S.sets.length ? `<button class="btn primary wide" data-act="finish">🏁 Finish workout</button>` : ""}`;
 }
 

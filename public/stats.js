@@ -120,3 +120,24 @@ export function insights(ctx) {
   const rank = { warn: 0, info: 1, good: 2 };
   return out.sort((a, b) => rank[a.tone] - rank[b.tone]);
 }
+
+// US Navy tape method (Hodgdon & Beckett, 1984), inches in, body-fat % out. Typical error is a few points: an estimate, not a measurement.
+// Women also need hips. Returns null when the tape numbers don't make sense.
+export function navyBodyFat({ sex, height, waist, neck, hips }) {
+  const girth = sex === "female" ? waist + hips - neck : waist - neck;
+  if (!(height > 0 && waist > 0 && neck > 0 && girth > 0) || (sex === "female" && !(hips > 0))) return null;
+  const bf = sex === "female" ? 163.205 * Math.log10(girth) - 97.684 * Math.log10(height) - 78.387 : 86.01 * Math.log10(girth) - 70.041 * Math.log10(height) + 36.76;
+  return bf > 2 && bf < 60 ? Math.round(bf * 10) / 10 : null;
+}
+
+// last `weeks` Monday-first weeks as columns of 7 days: 1 = trained, 0 = not, null = future
+export function trainingGrid(dates, today, weeks = 12) {
+  const set = new Set(dates), start = shift(mondayOf(today), -7 * (weeks - 1));
+  return Array.from({ length: weeks }, (_, w) => Array.from({ length: 7 }, (_, d) => { const day = shift(start, w * 7 + d); return day > today ? null : { day, on: set.has(day) ? 1 : 0 }; }));
+}
+
+// 7-day averages of the manual daily log ({ date: { sleep, steps } }), only over days that have the value
+export function dailyAvg(log, today, key) {
+  const v = Array.from({ length: 7 }, (_, i) => log[shift(today, -i)]?.[key]).filter((x) => x > 0);
+  return v.length ? { avg: avg(v), n: v.length } : null;
+}

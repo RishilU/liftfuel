@@ -2,7 +2,7 @@ import { $, esc, r1, avg, S, X, byId, api, apiQ, outbox, cache, ACTIONS, CHANGES
 import { loggedVolume, volumeClass, VOLUME_TARGET } from "./routine.js";
 import { weeklyCheck, PHASES } from "./targets.js";
 import { coach, insightCard } from "./coach.js";
-import { weeklySummary, prs } from "./stats.js";
+import { weeklySummary, prs, navyBodyFat, trainingGrid } from "./stats.js";
 import { haptic } from "./fx.js";
 
 // weigh-ins saved with no signal are laid over the saved rows until they sync
@@ -51,6 +51,12 @@ function summaryCard() {
     <div class="stats">${stat(`${w.workouts}${w.planned ? ` / ${w.planned}` : ""}`, "workouts")}${stat(w.daysLogged ? `${w.proteinDays} / ${w.daysLogged}` : dash, "days protein hit")}${stat(w.weight ? r1(w.weight) : dash, "avg lb")}</div>
     <div class="stats">${stat(w.avgKcal ? fmt(w.avgKcal) : dash, "avg calories")}${stat(w.avgProtein ? Math.round(w.avgProtein) : dash, "avg protein g")}${stat(w.weightChange != null ? `${w.weightChange >= 0 ? "+" : ""}${r1(w.weightChange)}` : dash, "lb vs last week")}</div>
     <p class="dim">${w.daysLogged < 4 ? "Log food on 4 or more days for the averages to mean much. " : ""}Goal: ${fmt(t.kcal)} calories and ${t.protein} g protein.</p></div>`;
+}
+
+function heatCard() {
+  const g = trainingGrid(workoutDates(), S.today), n = g.flat().filter((c) => c?.on).length;
+  return `<div class="card"><h2>🗓️ Training calendar</h2><p class="dim">Last 12 weeks, ${n} workout${n === 1 ? "" : "s"}. Each column is a week, Monday on top.</p>
+    <div class="heat" role="img" aria-label="${n} workouts in the last 12 weeks">${g.map((w) => `<div>${w.map((c) => `<i class="${c ? (c.on ? "on" : "") : "fut"}" title="${c ? c.day : ""}"></i>`).join("")}</div>`).join("")}</div></div>`;
 }
 
 function weekSummary() {
@@ -120,7 +126,10 @@ function measuresCard() {
   const series = (k) => S.body.map((r) => [r.date, extraOf(r)[k]]).filter(([, v]) => v != null);
   const [, label, unit] = MEASURES.find((m) => m[0] === S.measure) ?? MEASURES[0];
   const pts = series(S.measure);
-  return `<div class="card"><h2>📏 Measurements</h2><p class="dim">Optional. Measure at the same spot each time. Body fat % only if you have a reliable way to measure it.</p>
+  const w = S.body.filter((r) => r.waist != null).at(-1)?.waist, latest = (k) => series(k).at(-1)?.[1], now = currentWeight();
+  const bf = navyBodyFat({ sex: S.profile.sex, height: S.profile.height_in, waist: w, neck: latest("neck"), hips: latest("hips") });
+  const bfLine = bf ? `<p>Tape estimate: about <b>${bf}% body fat</b>${now ? ` (${r1((now * bf) / 100)} lb fat, ${r1(now * (1 - bf / 100))} lb lean)` : ""}. <span class="dim">US Navy method (Hodgdon & Beckett, 1984). It is off by a few points, so watch the trend, not the number.</span></p>` : `<p class="dim">Save your waist (in Weight and waist) and neck${S.profile.sex === "female" ? " and hips" : ""} for a body-fat estimate from the US Navy tape method.</p>`;
+  return `<div class="card"><h2>📏 Measurements</h2>${bfLine}<p class="dim">Optional. Measure at the same spot each time. Body fat % only if you have a reliable way to measure it.</p>
     <div class="inputs" id="mform">${MEASURES.map(([k, l, u]) => { const last = series(k).at(-1);
       return `<div><label for="m-${k}">${l} (${u})</label><input id="m-${k}" name="${k}" type="number" inputmode="decimal" step="any" placeholder="${last ? last[1] : ""}"></div>`; }).join("")}</div>
     <button class="btn wide" data-act="savemeasure">Save measurements</button>
@@ -158,7 +167,7 @@ export async function renderProgress() {
   await Promise.all([S.cmpA, S.cmpB].filter((id) => id && !S.pdata[id]).map(async (id) => { S.pdata[id] = (await api("/api/photos/" + id).catch((e) => { if (!e.offline) throw e; return {}; })).data; }));
   const notes = coach().slice(0, 4);
   $("#view").innerHTML = `${header("Progress")}${notes.length ? `<h2 class="sect">🧠 Coach notes</h2>${notes.map(insightCard).join("")}` : ""}
-    ${summaryCard()}${recordsCard()}${weekSummary()}${nutritionCard()}${strength()}${bodyCard()}${measuresCard()}${photos()}${GUIDE()}`;
+    ${summaryCard()}${heatCard()}${recordsCard()}${weekSummary()}${nutritionCard()}${strength()}${bodyCard()}${measuresCard()}${photos()}${GUIDE()}`;
 }
 
 Object.assign(ACTIONS, {
