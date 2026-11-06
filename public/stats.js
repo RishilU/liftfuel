@@ -45,6 +45,24 @@ export function achievements(o) {
   ];
 }
 
+// Personal records: sets whose estimated 1RM beat everything logged before for that exercise (the first session sets the baseline, so it is not a PR).
+// rows = sets with {id, exercise_id, date, weight, reps}. One record per exercise per day, newest first.
+export function prs(rows) {
+  const by = {};
+  for (const r of [...rows].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id - b.id))) (by[r.exercise_id] ??= []).push(r);
+  const out = [];
+  for (const [id, list] of Object.entries(by)) {
+    let max = 0; const days = {};
+    for (const r of list) {
+      const e = e1rm(r.weight, r.reps);
+      if (max > 0 && e > max * 1.0001) days[r.date] = { id, date: r.date, weight: r.weight, reps: r.reps, e1rm: e, gain: e - max };
+      if (e > max) max = e;
+    }
+    out.push(...Object.values(days));
+  }
+  return out.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+}
+
 // Lifts whose best estimated 1RM has not gone up across their last 3 sessions. rows = sets with {exercise_id, date, weight, reps}.
 export function stalledLifts(rows) {
   const by = {};

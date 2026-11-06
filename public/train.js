@@ -1,7 +1,7 @@
 import { $, esc, r1, S, X, byId, api, hooks, cache, ACTIONS, CHANGES, toast, openSheet, closeSheet, header, seg, stepper, badge, saveSetting, saveRoutine, e1rm, dayNum, lineSvg, go, loadRange, shiftDay, workoutDates, fmt } from "./lib.js";
 import { TEMPLATES, defaultRoutine, plannedVolume, loggedVolume, setsByGroup, volumeClass, VOLUME_TARGET, nextLoad, primary } from "./routine.js";
 import { plateSplit, warmups, repMax } from "./lifting.js";
-import { mondayOf } from "./stats.js";
+import { mondayOf, prs } from "./stats.js";
 import { coach, insightCard } from "./coach.js";
 import { confetti, haptic } from "./fx.js";
 import { cardioCard } from "./extras.js";
@@ -96,7 +96,8 @@ function reorderCard(cards) {
 function chart(id) {
   const best = {};
   for (const r of S.hist[id] || []) best[r.date] = Math.max(best[r.date] ?? 0, e1rm(r.weight, r.reps));
-  return `<div class="chartbox">${lineSvg(Object.entries(best).sort().slice(-20).map(([d, v]) => [d, Math.round(v)]), "estimated best lift, lb")}</div>`;
+  const pts = Object.entries(best).sort().slice(-20).map(([d, v]) => [d, Math.round(v)]), pr = new Set(prs(S.hist[id] || []).map((p) => p.date));
+  return `<div class="chartbox">${lineSvg(pts, "estimated best lift, lb; gold dot = personal record", null, pts.flatMap((p, i) => (pr.has(p[0]) ? [i] : [])))}</div>`;
 }
 
 async function today() {

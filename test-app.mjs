@@ -89,7 +89,7 @@ assert.deepEqual(g, { chickpeas: 650, "greek yogurt": 1000, "olive oil": 10, "ro
 console.log("app logic checks passed");
 
 // ======== stats, insights, lifting math ========
-import { dayStreak, weekStreak, level, xp, achievements, stalledLifts, insights, mondayOf, weeklySummary } from "./public/stats.js";
+import { dayStreak, weekStreak, level, xp, achievements, stalledLifts, insights, mondayOf, weeklySummary, prs } from "./public/stats.js";
 import { plateSplit, warmups, repMax } from "./public/lifting.js";
 const T = "2026-11-05"; // a Thursday
 assert.equal(dayStreak([T, dayAgo(1), dayAgo(2)], T), 3);
@@ -170,4 +170,14 @@ import { dishTotals, perServing, labelFood, microPct, sumMicro, topMicros } from
   assert.ok(insights({ ...base, stalled: ["a", "b", "c"] }).some((n) => n.title === "Maybe an easier week"));
   assert.ok(!insights({ ...base, stalled: ["a", "b"] }).some((n) => n.title === "Maybe an easier week"));
   console.log("weekly summary ok");
+}
+
+// personal records: only sets that beat every earlier set of that lift; the first session is the baseline
+{
+  const s = (id, date, weight, reps, n) => ({ id: n, exercise_id: id, date, weight, reps });
+  const rec = prs([s("a", "2026-03-01", 100, 10, 1), s("a", "2026-03-03", 100, 8, 2), s("a", "2026-03-05", 105, 10, 3), s("a", "2026-03-05", 110, 10, 4), s("b", "2026-03-02", 50, 10, 5)]);
+  assert.equal(rec.length, 1);                              // b has one session only; a's Mar 3 set was lower
+  assert.equal(rec[0].date, "2026-03-05"); assert.equal(rec[0].weight, 110);
+  assert.deepEqual(prs([]), []);
+  console.log("prs ok");
 }

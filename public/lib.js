@@ -44,9 +44,35 @@ export async function api(path, opts = {}) {
   }
 }
 
+// ---------- outbox: writes made with no signal wait in the phone's storage and are sent, in order, when you are back online ----------
+const OK = "outbox";
+export const outbox = () => cache.get(OK, []);
+// like api(), but a "no connection" failure queues the request instead of throwing. Settings are coalesced: the newest value for a key wins.
+export async function apiQ(path, opts) {
+  try { return await api(path, opts); }
+  catch (e) {
+    if (!e.offline) throw e;
+    const keep = outbox().filter((o) => !(path === "/api/settings" && o.path === path && o.body.key === opts.body.key));
+    const t = Date.now() + Math.random();
+    cache.set(OK, [...keep, { t, path, method: opts.method, body: opts.body }]);
+    return { queued: true, t };
+  }
+}
+let flushing;
+export const flushOutbox = () => (flushing ??= (async () => {
+  let n = 0;
+  for (const o of outbox()) {
+    try { await api(o.path, { method: o.method, body: o.body }); }
+    catch (e) { if (e.offline || !/^invalid|not found/.test(e.message)) break; } // a request the server rejects is dropped, not retried forever
+    cache.set(OK, outbox().filter((x) => x.t !== o.t)); n++;
+  }
+  return n;
+})().finally(() => { flushing = null; }));
+
 export async function saveSetting(key, obj) {
   S.settings[key] = JSON.stringify(obj);
-  await api("/api/settings", { method: "PUT", body: { key, value: S.settings[key] } });
+  cache.set("settingsCache", S.settings);
+  await apiQ("/api/settings", { method: "PUT", body: { key, value: S.settings[key] } });
 }
 export const saveProfile = () => saveSetting("profile", S.profile);
 export const saveRoutine = () => saveSetting("routine", S.routine);
@@ -107,7 +133,8 @@ ACTIONS.step = (t) => {
 
 export const badge = (ev) => `<span class="badge ${ev}">${{ direct: "tested", principle: "inferred", limited: "practical" }[ev]}</span>`;
 
-export function lineSvg(pts, unit, trend) {
+// marks: indices of points to highlight (personal records)
+export function lineSvg(pts, unit, trend, marks = []) {
   if (pts.length < 2) return `<p class="dim">Add one more entry to see a chart.</p>`;
   const all = pts.map((p) => p[1]).concat(trend ?? []);
   const lo = Math.min(...all), hi = Math.max(...all), span = hi - lo || 1;
@@ -115,6 +142,7 @@ export function lineSvg(pts, unit, trend) {
   return `<svg viewBox="0 0 300 110" role="img" aria-label="${esc(unit)} over time">
     <polyline points="${pts.map((p, i) => xy(p[1], i)).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>
     ${trend ? `<polyline points="${trend.map(xy).join(" ")}" fill="none" stroke="var(--dim)" stroke-width="1.5" stroke-dasharray="4 3"/>` : ""}
+    ${marks.map((i) => `<circle cx="${xy(pts[i][1], i).split(",")[0]}" cy="${xy(pts[i][1], i).split(",")[1]}" r="4.5" fill="#ffc23d" stroke="var(--card)" stroke-width="1.5"/>`).join("")}
     <text x="10" y="10" font-size="10" fill="var(--dim)">high ${r1(hi)}</text>
     <text x="10" y="108" font-size="10" fill="var(--dim)">${pts[0][0]} to ${pts.at(-1)[0]} (${esc(unit)})</text></svg>`;
 }
@@ -135,14 +163,21 @@ export function ring(pct, { size = 150, stroke = 12, color = "var(--accent)", tr
     <div class="inner">${inner}</div></div>`;
 }
 
-export const loadOverview = async () => { S.overview = await api("/api/overview"); };
+export const loadOverview = async () => {
+  try { S.overview = await api("/api/overview"); cache.set("overview", S.overview); }
+  catch (e) { if (!e.offline) throw e; S.overview = cache.get("overview", S.overview); }
+};
 export const foodDates = () => [...new Set([...S.overview.food.filter((r) => r.kcal > 0).map((r) => r.date), ...(S.food.length ? [S.today] : [])])];
 export const workoutDates = () => [...new Set([...S.overview.workoutDates, ...(S.sets.length ? [S.today] : [])])];
 export const plannedDays = () => S.routine.days.filter((d) => d.ex.length).length;
 export const sum = (rows, k) => rows.reduce((a, r) => a + r[k], 0);
 export const shiftDay = (n) => new Date((dayNum(S.today) + n) * 864e5).toISOString().slice(0, 10);
 // offline: show what we have (nothing) instead of an error page
-export const loadRange = async (days) => { S.rangeSets = await api(`/api/sets?from=${shiftDay(-days)}&to=${S.today}`).catch((e) => { if (!e.offline) throw e; return []; }); };
+// the last copy is kept on the phone, so History and Progress still show something with no signal
+export const loadRange = async (days) => {
+  try { S.rangeSets = await api(`/api/sets?from=${shiftDay(-days)}&to=${S.today}`); cache.set("range", S.rangeSets.slice(-1500)); }
+  catch (e) { if (!e.offline) throw e; S.rangeSets = cache.get("range", []); }
+};
 export const offlineOk = (p) => p.catch((e) => { if (!e.offline) throw e; });
 // small JSON copies in the phone's storage, so the gym screen works with no signal
 export const cache = {

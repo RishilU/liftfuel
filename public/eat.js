@@ -1,4 +1,4 @@
-import { $, esc, r1, S, api, ACTIONS, hooks, toast, openSheet, closeSheet, header, targets, saveProfile, saveSetting, sum, go, currentWeight, ring, fmt, MEALS, mealNow, greeting, foodDates, shiftDay } from "./lib.js";
+import { $, esc, r1, S, api, apiQ, outbox, cache, ACTIONS, hooks, toast, openSheet, closeSheet, header, targets, saveProfile, saveSetting, sum, go, currentWeight, ring, fmt, MEALS, mealNow, greeting, foodDates, shiftDay } from "./lib.js";
 import { weeklyCheck, estMaintenance, PHASES } from "./targets.js";
 import { planMeals } from "./plan.js";
 import { dayStreak } from "./stats.js";
@@ -15,9 +15,13 @@ async function setWater(oz, last = 0) {
   haptic(8); await saveSetting("water", S.water);
   if (before < goal && oz >= goal) { confetti(60); toast("Water goal done! 💧"); }
 }
+// food logged with no signal: shown with a clock until it syncs
+const pendingFood = () => outbox().filter((o) => o.path === "/api/food" && o.method === "POST" && o.body.date === S.today).map((o) => ({ ...o.body, id: "q" + o.t, pending: true }));
 export async function loadFood() {
-  const [f, r] = await Promise.all([api("/api/food?date=" + S.today), api("/api/recent")]);
-  S.food = withMicro(f); S.recent = withMicro(r);
+  let f, r;
+  try { [f, r] = await Promise.all([api("/api/food?date=" + S.today), api("/api/recent")]); cache.set("foodToday", { date: S.today, f }); cache.set("recent", r); }
+  catch (e) { if (!e.offline) throw e; const c = cache.get("foodToday", null); f = c?.date === S.today ? c.f : []; r = cache.get("recent", []); }
+  S.food = [...withMicro(f), ...withMicro(pendingFood())]; S.recent = withMicro(r);
   S.intake[S.today] = sum(S.food, "kcal");
 }
 const proteinNow = () => sum(S.food, "protein");
@@ -25,7 +29,8 @@ const proteinNow = () => sum(S.food, "protein");
 // log one food; celebrates the moment you reach today's protein goal
 export async function logFood(row) {
   const before = proteinNow(), goal = targets().protein;
-  await api("/api/food", { method: "POST", body: { date: S.today, meal: S.mealSel ?? mealNow(), ...row } });
+  const r = await apiQ("/api/food", { method: "POST", body: { date: S.today, meal: S.mealSel ?? mealNow(), ...row } });
+  if (r.queued) toast("No signal: saved on your phone, it will sync later 📶");
   await loadFood();
   if (before < goal && proteinNow() >= goal) { confetti(); toast("Protein goal reached! 💪"); }
 }
@@ -82,7 +87,7 @@ function mealCards(t) {
     if (!rows.length) return "";
     const p = sum(rows, "protein"), ok = id !== "snack" && p >= per * 0.9;
     return `<div class="card"><div class="meal-h"><h2>${emoji} ${label}</h2><span class="dim"><b>${Math.round(sum(rows, "kcal"))}</b> cal · <b class="${ok ? "ok" : ""}">${Math.round(p)}</b>${id === "snack" ? "" : ` / ${per}`} g protein${ok ? " ✓" : ""}</span></div>
-      ${rows.map((r) => `<div class="row between item"><div data-act="editfood" data-id="${r.id}" role="button" tabindex="0" aria-label="Edit ${esc(r.name)}"><div>${esc(r.name)}${r.grams ? ` <span class="dim">${Math.round(r.grams)} g</span>` : ""}</div>
+      ${rows.map((r) => `<div class="row between item"><div data-act="editfood" data-id="${r.id}" role="button" tabindex="0" aria-label="Edit ${esc(r.name)}"><div>${r.pending ? "⏳ " : ""}${esc(r.name)}${r.grams ? ` <span class="dim">${Math.round(r.grams)} g</span>` : ""}</div>
         <div class="dim">${Math.round(r.kcal)} cal · ${r1(r.protein)} protein · ${r1(r.carbs)} carbs · ${r1(r.fat)} fat</div></div>
         <span class="row nowrap"><button class="x" data-act="favToggle" data-id="${r.id}" aria-pressed="${isFav(r)}" aria-label="${isFav(r) ? "Remove from" : "Add to"} favorites: ${esc(r.name)}">${isFav(r) ? "⭐" : "☆"}</button><button class="x" data-act="fdel" data-id="${r.id}" aria-label="Delete ${esc(r.name)}">✕</button></span></div>`).join("")}</div>`;
   }).join("");
@@ -181,12 +186,14 @@ Object.assign(ACTIONS, {
   delMine: async (t) => { S.mymeals.splice(t.dataset.i, 1); await saveSetting("mymeals", S.mymeals); },
   fdel: async (t) => {
     const r = S.food.find((x) => String(x.id) === t.dataset.id);
+    if (t.dataset.id.startsWith("q")) { cache.set("outbox", outbox().filter((o) => "q" + o.t !== t.dataset.id)); await loadFood(); return; }
     await api("/api/food/" + t.dataset.id, { method: "DELETE" }); await loadFood();
     if (r) toast("Removed", async () => { const { name, grams, kcal, protein, carbs, fat, fiber, meal, micro } = r; await api("/api/food", { method: "POST", body: { date: S.today, name, grams: grams ?? undefined, kcal, protein, carbs, fat, fiber: fiber ?? undefined, meal: meal ?? undefined, micro: micro ?? undefined } }); await loadFood(); });
   },
   editfood: (t) => {
     const r = S.food.find((x) => String(x.id) === t.dataset.id);
     if (!r) return false;
+    if (r.pending) throw new Error("This one is still waiting for signal. Edit it after it syncs.");
     openSheet(`<h2>Edit food</h2>
       <div class="field"><label for="ef-name">Name</label><input id="ef-name" maxlength="120" value="${esc(r.name)}"></div>
       <div class="field"><label for="ef-amt">${r.grams ? "Amount (grams)" : "How many (1 = what you logged)"}</label><input id="ef-amt" type="number" inputmode="decimal" min="0.1" step="any" value="${r.grams ? Math.round(r.grams) : 1}"></div>

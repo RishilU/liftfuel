@@ -1,4 +1,4 @@
-import { $, esc, S, api, saveSetting, offlineOk, cache, ACTIONS, CHANGES, hooks, toast, closeSheet, ymd, go, loadOverview, loadRange } from "./lib.js";
+import { $, esc, S, api, flushOutbox, outbox, saveSetting, offlineOk, cache, ACTIONS, CHANGES, hooks, toast, closeSheet, ymd, go, loadOverview, loadRange } from "./lib.js";
 import { DEFAULT_PROFILE } from "./targets.js";
 import { defaultRoutine } from "./routine.js";
 import { applyTheme, enterAnim, countUps } from "./fx.js";
@@ -13,8 +13,17 @@ import "./extras.js";
 
 const VIEWS = { eat: renderEat, cook: renderCook, train: renderTrain, progress: renderProgress, profile: renderProfile, settings: renderSettings, dish: renderDish };
 
+// screen stays on while you are on today's workout (the browser drops the lock whenever the app is hidden; the next render asks again)
+async function keepAwake(on) {
+  try {
+    if (on && !S.wlTrain && navigator.wakeLock) { S.wlTrain = await navigator.wakeLock.request("screen"); S.wlTrain.addEventListener("release", () => { S.wlTrain = null; }); }
+    else if (!on && S.wlTrain) { const l = S.wlTrain; S.wlTrain = null; await l.release(); }
+  } catch { S.wlTrain = null; }
+}
+
 async function render() {
   document.querySelectorAll("#tabs button").forEach((b) => { const on = b.dataset.tab === (S.tab === "dish" ? "eat" : S.tab); b.classList.toggle("on", on); b.setAttribute("aria-current", on ? "page" : "false"); });
+  keepAwake(S.tab === "train" && S.trainTab === "today" && S.profile.ui?.awake !== "off");
   try { await VIEWS[S.tab](); }
   catch (e) { $("#view").innerHTML = `<div class="card"><h2>Something went wrong</h2><p>${esc(e.message)}</p><button class="btn primary" data-act="retry">Try again</button></div>`; }
   const nav = `${S.tab}|${S.trainTab}|${S.cookTab}`; // animate when you move to a different screen, not on every tap
@@ -66,9 +75,16 @@ setInterval(() => {
 }, 500);
 
 // A home-screen app can stay open overnight: reload when the date changes.
-const sync = () => flushQueue().then(() => hooks.render()).catch(() => {});
+const sync = async () => {
+  try {
+    const n = await flushOutbox();
+    if (n) { await Promise.all([loadFood(), loadBody()]); toast(`Synced ${n} item${n > 1 ? "s" : ""} ✓`); }
+    await flushQueue();
+    hooks.render();
+  } catch {}
+};
 document.addEventListener("visibilitychange", () => { if (!document.hidden && ymd() !== S.today) location.reload(); else if (!document.hidden) sync(); });
-addEventListener("online", sync);
+addEventListener("online", () => { S.rangeSets = null; sync(); });
 const offline = () => { $("#offline").hidden = navigator.onLine; };
 addEventListener("online", offline); addEventListener("offline", offline);
 
@@ -80,6 +96,7 @@ applyTheme(); // use the saved look right away, before anything loads
   try {
     try { S.settings = await api("/api/settings"); cache.set("settingsCache", S.settings); }
     catch (e) { const c = e.offline && cache.get("settingsCache", null); if (!c) throw e; S.settings = c; }
+    for (const o of outbox()) if (o.path === "/api/settings") S.settings[o.body.key] = o.body.value; // changes made with no signal win over the saved copy
     const j = (k, d) => (S.settings[k] ? JSON.parse(S.settings[k]) : d);
     S.profile = { ...DEFAULT_PROFILE, ...j("profile", {}) };
     S.routine = j("routine", null) ?? defaultRoutine("hyp5");

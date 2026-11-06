@@ -1,11 +1,27 @@
-import { $, esc, r1, avg, S, X, byId, api, ACTIONS, CHANGES, toast, header, seg, lineSvg, e1rm, dayNum, shiftDay, loadRange, currentWeight, targets, sum, fmt, workoutDates, plannedDays } from "./lib.js";
+import { $, esc, r1, avg, S, X, byId, api, apiQ, outbox, cache, ACTIONS, CHANGES, toast, header, seg, lineSvg, e1rm, dayNum, shiftDay, loadRange, currentWeight, targets, sum, fmt, workoutDates, plannedDays } from "./lib.js";
 import { loggedVolume, volumeClass, VOLUME_TARGET } from "./routine.js";
 import { weeklyCheck, PHASES } from "./targets.js";
 import { coach, insightCard } from "./coach.js";
-import { weeklySummary } from "./stats.js";
+import { weeklySummary, prs } from "./stats.js";
 import { haptic } from "./fx.js";
 
-export const loadBody = async () => { [S.body, S.photos] = await Promise.all([api("/api/body"), api("/api/photos")]); };
+// weigh-ins saved with no signal are laid over the saved rows until they sync
+function withPending(rows) {
+  const out = rows.map((r) => ({ ...r }));
+  for (const o of outbox().filter((x) => x.path === "/api/body")) {
+    let r = out.find((x) => x.date === o.body.date);
+    if (!r) out.push(r = { date: o.body.date, weight: null, waist: null, extra: null });
+    if (o.body.weight != null) r.weight = o.body.weight;
+    if (o.body.waist != null) r.waist = o.body.waist;
+    if (o.body.extra) r.extra = JSON.stringify(o.body.extra);
+  }
+  return out.sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+export async function loadBody() {
+  try { const [b, p] = await Promise.all([api("/api/body"), api("/api/photos")]); S.body = b; S.photos = p; cache.set("body", { b, p }); }
+  catch (e) { if (!e.offline) throw e; const c = cache.get("body", { b: S.body, p: S.photos }); S.body = c.b; S.photos = c.p; }
+  S.body = withPending(S.body);
+}
 const poseOf = (p) => p.pose ?? "front";
 const POSES = [["front", "Front"], ["side", "Side"], ["back", "Back"]];
 const MEASURES = [["chest", "Chest", "in"], ["arm", "Arm", "in"], ["thigh", "Thigh", "in"], ["hips", "Hips", "in"], ["neck", "Neck", "in"], ["bodyfat", "Body fat", "%"]];
@@ -61,6 +77,13 @@ function nutritionCard() {
     <p class="dim">Green: protein goal reached. Orange: logged, protein low. Goal ${fmt(t.kcal)} calories.</p></div>`;
 }
 
+function recordsCard() {
+  const list = prs(S.rangeSets ?? []).filter((p) => byId[p.id]).slice(0, 6);
+  return `<div class="card"><h2>🏆 Personal records</h2>${list.length ? list.map((p) => `<div class="row between item" data-act="exinfo" data-id="${p.id}" role="button" tabindex="0"><div><b>${esc(byId[p.id].name)}</b><div class="dim">${new Date(p.date + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}</div></div>
+      <div class="right"><b>${p.weight} × ${p.reps}</b><div class="ok">+${r1(p.gain)} lb est.</div></div></div>`).join("") + `<p class="dim">A record is a set whose estimated one-rep max beat everything you logged before. Tap a lift for its chart.</p>`
+    : `<p class="dim">Records show up once you beat an earlier session on the same lift.</p>`}</div>`;
+}
+
 function strength() {
   const by = {};
   for (const r of S.rangeSets) ((by[r.exercise_id] ??= {})[r.date] ??= []).push(e1rm(r.weight, r.reps));
@@ -69,7 +92,7 @@ function strength() {
     return { id, n: ds.length, first: best(ds[0]), last: best(ds.at(-1)), since: ds[0] };
   }).filter((x) => x.n >= 2 && byId[x.id]).sort((a, b) => b.n - a.n).slice(0, 8);
   return `<div class="card"><h2>💪 Strength</h2>${rows.length ? rows.map((x) => { const ch = ((x.last - x.first) / x.first) * 100;
-    return `<div class="row between item"><div><b>${esc(byId[x.id].name)}</b><div class="dim">${x.n} sessions since ${x.since}</div></div>
+    return `<div class="row between item" data-act="exinfo" data-id="${x.id}" role="button" tabindex="0" aria-label="Details for ${esc(byId[x.id].name)}"><div><b>${esc(byId[x.id].name)} ›</b><div class="dim">${x.n} sessions since ${x.since}</div></div>
       <div class="right"><b>${Math.round(x.last)} lb</b><div class="${ch >= 0 ? "ok" : "warn"}">${ch >= 0 ? "▲" : "▼"} ${Math.abs(r1(ch))}%</div></div></div>`; }).join("")
     : `<p class="dim">Log the same exercise on two different days to see your strength trend. The number is an estimate of the heaviest single lift you could do.</p>`}</div>`;
 }
@@ -132,10 +155,10 @@ const GUIDE = () => `<details class="card"><summary><b>📚 Science behind this 
 export async function renderProgress() {
   if (!S.rangeSets) await loadRange(120);
   if (S.cmpA == null && S.photos.length) resetCompare();
-  await Promise.all([S.cmpA, S.cmpB].filter((id) => id && !S.pdata[id]).map(async (id) => { S.pdata[id] = (await api("/api/photos/" + id)).data; }));
+  await Promise.all([S.cmpA, S.cmpB].filter((id) => id && !S.pdata[id]).map(async (id) => { S.pdata[id] = (await api("/api/photos/" + id).catch((e) => { if (!e.offline) throw e; return {}; })).data; }));
   const notes = coach().slice(0, 4);
   $("#view").innerHTML = `${header("Progress")}${notes.length ? `<h2 class="sect">🧠 Coach notes</h2>${notes.map(insightCard).join("")}` : ""}
-    ${summaryCard()}${weekSummary()}${nutritionCard()}${strength()}${bodyCard()}${measuresCard()}${photos()}${GUIDE()}`;
+    ${summaryCard()}${recordsCard()}${weekSummary()}${nutritionCard()}${strength()}${bodyCard()}${measuresCard()}${photos()}${GUIDE()}`;
 }
 
 Object.assign(ACTIONS, {
@@ -145,16 +168,16 @@ Object.assign(ACTIONS, {
     if (v.weight) body.weight = +v.weight;
     if (v.waist) body.waist = +v.waist;
     if (!body.weight && !body.waist) throw new Error("Type your weight or your waist.");
-    await api("/api/body", { method: "PUT", body });
-    await loadBody(); haptic(); toast("Saved");
+    const r = await apiQ("/api/body", { method: "PUT", body });
+    await loadBody(); haptic(); toast(r.queued ? "No signal: saved on your phone, it will sync later 📶" : "Saved");
   },
   savemeasure: async () => {
     const extra = {};
     for (const [k] of MEASURES) { const v = $(`#mform [name=${k}]`).value; if (v) extra[k] = +v; }
     if (!Object.keys(extra).length) throw new Error("Type at least one measurement.");
     const cur = extraOf(S.body.find((r) => r.date === S.today) ?? {});
-    await api("/api/body", { method: "PUT", body: { date: S.today, extra: { ...cur, ...extra } } });
-    await loadBody(); haptic(); toast("Measurements saved");
+    const r = await apiQ("/api/body", { method: "PUT", body: { date: S.today, extra: { ...cur, ...extra } } });
+    await loadBody(); haptic(); toast(r.queued ? "No signal: saved on your phone, it will sync later 📶" : "Measurements saved");
   },
   measure: (t) => { S.measure = t.dataset.v; },
   cmppose: (t) => { S.cmpPose = t.dataset.v; resetCompare(); },

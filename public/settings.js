@@ -4,7 +4,7 @@ import { TEMPLATES } from "./routine.js";
 import { loadBody } from "./progress.js";
 import { applyTheme, ui, ACCENTS, haptic } from "./fx.js";
 
-const VERSION = "3.4";
+const VERSION = "3.5";
 const csv = (rows, cols) => [cols.join(","), ...rows.map((r) => cols.map((c) => JSON.stringify(r[c] ?? "")).join(","))].join("\n");
 function download(name, text, type = "text/plain") {
   const a = document.createElement("a");
@@ -42,7 +42,8 @@ export function renderSettings() {
       <div class="dim">Accent colour</div><div class="swatches">${Object.entries(ACCENTS).map(([k, h]) => `<button class="sw ${u.accent === k ? "on" : ""}" style="background:hsl(${h} 68% 42%)" data-act="uiaccent" data-v="${k}" aria-label="${k}" aria-pressed="${u.accent === k}"></button>`).join("")}</div>
       <div class="dim">Text size</div>${seg([["normal", "Normal"], ["large", "Large"], ["xl", "Extra large"]], u.text, "uitext")}
       <label class="check" style="margin-top:8px"><input class="switch" type="checkbox" data-change="uiflag" data-f="motion" ${u.motion === "on" ? "checked" : ""}> Animations and confetti</label>
-      <label class="check"><input class="switch" type="checkbox" data-change="uiflag" data-f="haptics" ${u.haptics === "on" ? "checked" : ""}> Vibration feedback</label></div>
+      <label class="check"><input class="switch" type="checkbox" data-change="uiflag" data-f="haptics" ${u.haptics === "on" ? "checked" : ""}> Vibration feedback</label>
+      <label class="check"><input class="switch" type="checkbox" data-change="uiflag" data-f="awake" ${u.awake !== "off" ? "checked" : ""}> Keep the screen on during workouts</label></div>
     <div class="card"><h2>💾 Your data</h2>
       <button class="btn wide" data-act="export">Download a full backup (JSON)</button>
       <button class="btn wide" data-act="exportWorkouts">Download workouts (CSV)</button>

@@ -11,12 +11,13 @@ A mobile web app for tracking workouts, food and body weight in one place. It in
 ## What it does
 
 - **Eat:** calorie and macro targets that adjust to body weight, training days and goal. Search the USDA food database, build meals from ingredients, edit or undo anything you logged, save favorites, and track fiber, vitamins and minerals. After 3 pm it suggests foods for any nutrient that is still low.
-- **Train:** a weekly plan with one-tap set logging, suggested weights from your last session, rest timer, plate calculator and drag-to-reorder. Tap any set (today or in History) to change its weight, reps or note, with undo for mistakes. Sets logged with no signal are saved on the phone and sync when you are back online.
-- **Progress:** weekly summary, strength trends, body weight and measurements, and progress photos with side-by-side comparison.
+- **Train:** a weekly plan with one-tap set logging, suggested weights from your last session, rest timer, plate calculator and drag-to-reorder. Tap any set (today or in History) to change its weight, reps or note, with undo for mistakes. The screen stays on during a workout.
+- **Progress:** weekly summary, personal records with gold markers on each lift's chart, strength trends, body weight and measurements, and progress photos with side-by-side comparison.
 - **Also:** water goal with bottle buttons, supplements checklist, cardio log, and a recipe finder that fits your remaining calories and protein.
 
 ## How it works
 
+- **Offline:** logging sets, food, water, supplements, cardio and weigh-ins works with no signal. Entries wait on the phone (marked with a clock) and sync in order when the connection returns.
 - **Frontend:** plain JavaScript (ES modules), no framework and no build step. A service worker makes it installable.
 - **Backend:** one Cloudflare Worker with a D1 (SQLite) database. Sign-in is a single passphrase, because the app has one user.
 - **Nutrition data:** every calorie, macro and micronutrient number is calculated in code from USDA FoodData Central. A language model on Cloudflare Workers AI only suggests ingredients and amounts for a described dish; it never supplies the nutrition numbers.
