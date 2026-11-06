@@ -11,7 +11,7 @@ A mobile web app for tracking workouts, food and body weight in one place. It in
 ## What it does
 
 - **Eat:** calorie and macro targets that adjust to body weight, training days and goal. Search the USDA food database, build meals from ingredients, edit or undo anything you logged, save favorites, and track fiber, vitamins and minerals. After 3 pm it suggests foods for any nutrient that is still low.
-- **Train:** a weekly plan with one-tap set logging, suggested weights from your last session, rest timer, plate calculator and drag-to-reorder. Sets logged with no signal are saved on the phone and sync when you are back online.
+- **Train:** a weekly plan with one-tap set logging, suggested weights from your last session, rest timer, plate calculator and drag-to-reorder. Tap any set (today or in History) to change its weight, reps or note, with undo for mistakes. Sets logged with no signal are saved on the phone and sync when you are back online.
 - **Progress:** weekly summary, strength trends, body weight and measurements, and progress photos with side-by-side comparison.
 - **Also:** water goal with bottle buttons, supplements checklist, cardio log, and a recipe finder that fits your remaining calories and protein.
 
